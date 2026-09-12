@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>PetMatch — Find Your Pet</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Public+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/styles.css" />
+</head>
+<body>
+<a class="skip-link" href="#main">Skip to main content</a>
+
+<header class="site-header">
+  <div class="wrap">
+    <span class="logo">PetMatch <span class="tag">lifestyle match v0.1</span></span>
+  </div>
+</header>
+
+<main id="main" class="wrap">
+
+  <!-- 1. Landing screen -->
+  <section id="screen-landing" class="screen" aria-labelledby="landing-title">
+    <h1 id="landing-title">Find the pet that actually fits your life</h1>
+    <p class="lede">
+      Answer a short lifestyle quiz and get a ranked list of dog, cat, rabbit,
+      small-rodent, and bird types matched to your home, schedule, and
+      experience — then see real adoptable animals near you.
+    </p>
+    <button id="btn-start-quiz" class="btn btn-primary" type="button">Start Quiz</button>
+    <p class="disclaimer">
+      PetMatch offers general lifestyle guidance only — it is not professional
+      veterinary or behavioral advice. Always consult a vet or experienced
+      rescue staff before adopting.
+    </p>
+  </section>
+
+  <!-- 2. Quiz -->
+  <section id="screen-quiz" class="screen" hidden aria-labelledby="quiz-title">
+    <h1 id="quiz-title" class="sr-only">Lifestyle quiz</h1>
+    <div class="progress-wrap" role="progressbar" id="progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+      <div class="progress-bar" id="progress-bar"></div>
+    </div>
+    <p class="step-counter" id="step-counter"></p>
+    <form id="quiz-form">
+      <div id="quiz-step-container"></div>
+      <div class="quiz-nav">
+        <button type="button" id="btn-back" class="btn btn-secondary">Back</button>
+        <button type="button" id="btn-next" class="btn btn-primary">Next</button>
+      </div>
+    </form>
+  </section>
+
+  <!-- 3. Results -->
+  <section id="screen-results" class="screen" hidden aria-labelledby="results-title">
+    <h1 id="results-title">Your top matches</h1>
+    <p class="lede" id="results-subtitle"></p>
+    <div id="results-list" class="results-list"></div>
+    <div class="results-actions">
+      <button id="btn-retake" class="btn btn-secondary" type="button">Retake or adjust the quiz</button>
+    </div>
+    <p class="disclaimer">
+      These results are general lifestyle guidance based on your answers and
+      typical breed/species traits — not a guarantee of temperament, and not
+      veterinary or professional behavioral advice.
+    </p>
+  </section>
+
+</main>
+
+<!-- Shared "adoptable near me" location modal -->
+<div id="location-modal" class="modal" hidden aria-hidden="true">
+  <div class="modal-content" role="dialog" aria-labelledby="location-modal-title" aria-modal="true">
+    <h2 id="location-modal-title">Where should we search?</h2>
+    <p>Enter a ZIP code or city and state. We'll reuse this for every search.</p>
+    <label for="location-input" class="sr-only">ZIP code or city, state</label>
+    <input type="text" id="location-input" placeholder="e.g. 10001 or Austin, TX" autocomplete="postal-code" />
+    <div class="modal-actions">
+      <button type="button" id="btn-location-cancel" class="btn btn-secondary">Cancel</button>
+      <button type="button" id="btn-location-save" class="btn btn-primary">Search</button>
+    </div>
+  </div>
+</div>
+
+<template id="template-result-card">
+  <article class="result-card">
+    <button class="result-summary" type="button" aria-expanded="false">
+      <span class="result-rank"></span>
+      <span class="result-name"></span>
+      <span class="result-meta"></span>
+      <span class="result-score" aria-label="match score"></span>
+      <span class="chevron" aria-hidden="true">▾</span>
+    </button>
+    <div class="result-detail" hidden>
+      <p class="result-why"></p>
+      <p class="result-personality"></p>
+      <div class="result-facts">
+        <div><strong>Likes to do:</strong> <span class="result-likes"></span></div>
+        <div><strong>Requirements:</strong> <span class="result-requirements"></span></div>
+        <div><strong>Common health issues:</strong> <span class="result-health"></span></div>
+      </div>
+      <button class="btn btn-outline btn-see-adoptable" type="button">See adoptable near me</button>
+      <div class="adoptable-panel" hidden></div>
+    </div>
+  </article>
+</template>
+
+<script src="js/matching.js"></script>
+<script src="js/quiz-questions.js"></script>
+<script src="js/shelterSearch.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>

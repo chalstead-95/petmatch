@@ -1,0 +1,17 @@
+{
+  "name": "petmatch",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Pet & breed recommendation quiz, with outbound links to Petfinder/Adopt-a-Pet for finding adoptable animals.",
+  "main": "server.js",
+  "scripts": {
+    "dev": "node server.js",
+    "start": "node server.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "express": "^4.19.2"
+  }
+}
