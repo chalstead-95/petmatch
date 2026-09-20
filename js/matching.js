@@ -18,8 +18,8 @@ const WEIGHTS = {
   energyMatch: 15, // activity level vs energyLevel / exerciseNeedsMinutesPerDay
   aloneTime: 12, // hours alone vs toleratesAloneTimeHours
   experience: 12, // owner experience vs experienceLevelNeeded / trainability
-  allergies: 12, // allergy sensitivity vs hypoallergenic (hard mismatch lives here)
-  livingSpace: 10, // apartment/house/yard + enclosure space vs goodForApartment / size
+  allergies: 12, // allergy sensitivity vs hypoallergenic (mild penalty; "significant" is a hard filter, see isAllergyEligible)
+  livingSpace: 10, // apartment/house/yard + enclosure space + rental restrictions vs goodForApartment / size
   noise: 10, // noise tolerance vs noiseLevel
   grooming: 8, // grooming tolerance vs groomingNeeds
   budget: 8, // budget comfort vs typicalCostTier
@@ -31,6 +31,55 @@ const MAX_POSSIBLE = Object.values(WEIGHTS).reduce((a, b) => a + b, 0); // 100
 
 const COST_RANK = { low: 1, medium: 2, high: 3 };
 const EXPERIENCE_RANK = { beginner: 1, intermediate: 2, experienced: 3 };
+
+// Dog names in the dataset that commonly appear on rental/insurance
+// breed-restriction lists. This is a name-matched heuristic, not a real
+// breed-restriction database — the dataset doesn't have a field for it,
+// and restriction lists vary by landlord/insurer. It's a documented
+// first-pass judgment call, same spirit as the WEIGHTS above.
+const COMMONLY_RESTRICTED_DOG_NAMES = [
+  "german shepherd",
+  "siberian husky",
+  "great dane",
+  "boxer",
+  "doberman",
+  "rottweiler",
+  "pit bull",
+  "mastiff",
+  "chow chow",
+  "akita",
+  "alaskan malamute",
+  "cane corso",
+  "presa canario",
+];
+
+function isCommonlyRestrictedDog(pet) {
+  if (pet.species !== "dog") return false;
+  const name = pet.name.toLowerCase();
+  return COMMONLY_RESTRICTED_DOG_NAMES.some((n) => name.includes(n));
+}
+
+/**
+ * "Significant" pet allergies are excluded from the ranked list entirely
+ * for cats and dogs (not just scored down) — a Balcony Group reviewer
+ * pointed out that cats were still showing up as a top match for someone
+ * who is significantly allergic to cats, which made the results feel
+ * untrustworthy no matter how the scoring explained itself.
+ *
+ * This only applies to cats/dogs: "significant pet allergies" in common
+ * usage is almost always about cat/dog dander (Fel d 1 / Can f 1), which is
+ * also literally the bug that was reported. Rabbits, rodents, and birds
+ * have different allergen profiles that this dataset doesn't model, so
+ * hard-filtering them out too would hide 3 of 5 species for anyone who
+ * picks "significant" — that's a worse, emptier result, not a more
+ * accurate one. "Mild" sensitivity stays a scoring penalty rather than a
+ * filter, unchanged from before.
+ */
+function isAllergyEligible(answers, pet) {
+  if (answers.allergies !== "significant") return true;
+  if (pet.species !== "dog" && pet.species !== "cat") return true;
+  return pet.hypoallergenic;
+}
 
 function clamp01(n) {
   return Math.max(0, Math.min(1, n));
@@ -71,7 +120,11 @@ function scoreExperience(answers, pet) {
 function scoreAllergies(answers, pet) {
   switch (answers.allergies) {
     case "significant":
-      // Hard mismatch: zero out this factor rather than the whole score.
+      // Non-hypoallergenic cats/dogs never reach this: they're excluded
+      // before scoring by isAllergyEligible. Rabbits/rodents/birds aren't
+      // hard-filtered, so they get full credit here rather than being
+      // penalized for a hypoallergenic flag that was never modeled for them.
+      if (pet.species !== "dog" && pet.species !== "cat") return WEIGHTS.allergies;
       return pet.hypoallergenic ? WEIGHTS.allergies : 0;
     case "mild":
       return pet.hypoallergenic ? WEIGHTS.allergies : WEIGHTS.allergies * 0.5;
@@ -96,6 +149,21 @@ function scoreLivingSpace(answers, pet) {
     const enclosureScore = rankCloseness(sizeRank, spaceRank <= sizeRank ? sizeRank : spaceRank, 2);
     score = spaceRank >= sizeRank ? score : Math.min(score, enclosureScore);
   }
+
+  // Rental restrictions (added after Balcony Group feedback: the quiz asked
+  // whether users rent, but nothing downstream ever used the answer). This
+  // is folded into livingSpace rather than given its own weight bucket,
+  // since it's still fundamentally about housing constraints. Only applies
+  // when the user actually reported a restriction — "not sure" is treated
+  // as a no-op rather than guessed at.
+  if (answers.renter === "yes") {
+    if (answers.rentalRestrictions === "size" && pet.species === "dog" && pet.size === "large") {
+      score = Math.min(score, 0.3);
+    } else if (answers.rentalRestrictions === "breed" && isCommonlyRestrictedDog(pet)) {
+      score = Math.min(score, 0.15);
+    }
+  }
+
   return clamp01(score) * WEIGHTS.livingSpace;
 }
 
@@ -197,11 +265,14 @@ function explainMatch(answers, pet, topFactors) {
 }
 
 /**
- * Runs every dataset entry through scorePet, sorts descending, and returns
- * the top N (spec: top 5-10) with a generated explanation attached.
+ * Runs every eligible dataset entry through scorePet, sorts descending, and
+ * returns the top N (spec: top 5-10) with a generated explanation attached.
+ * "Eligible" excludes non-hypoallergenic cats/dogs when allergies are
+ * "significant" — see isAllergyEligible.
  */
 function getMatches(answers, dataset, { limit = 8 } = {}) {
   return dataset
+    .filter((pet) => isAllergyEligible(answers, pet))
     .map((pet) => {
       const { score, topFactors } = scorePet(answers, pet);
       return { pet, score, explanation: explainMatch(answers, pet, topFactors) };
@@ -212,5 +283,5 @@ function getMatches(answers, dataset, { limit = 8 } = {}) {
 
 // Exposed for both the browser (script tag) and any future test runner.
 if (typeof module !== "undefined" && module.exports) {
-  module.exports = { getMatches, scorePet, WEIGHTS, MAX_POSSIBLE };
+  module.exports = { getMatches, scorePet, isAllergyEligible, isCommonlyRestrictedDog, WEIGHTS, MAX_POSSIBLE };
 }

@@ -70,15 +70,35 @@ const QUIZ_QUESTIONS = [
   {
     id: "renter",
     title: "Do you rent your home?",
-    subtitle: "Informational only — this won't rule anything out, but breed size and pet deposits are worth knowing about ahead of time.",
+    subtitle: "If you rent, we'll also ask about any pet restrictions in your lease — that now factors into your matches, not just an FYI.",
     render(container, answers) {
       radioGroup(container, "renter", [
         { value: "yes", label: "Yes, I rent" },
         { value: "no", label: "No, I own" },
       ], answers.renter);
+
+      const wrap = document.createElement("div");
+      wrap.className = "field-group";
+      wrap.id = "rentalRestrictionsRow";
+      wrap.hidden = answers.renter !== "yes";
+      wrap.innerHTML = `<p class="step-subtitle" style="margin-top:16px">Does your lease have pet restrictions?</p>`;
+      container.appendChild(wrap);
+      radioGroup(wrap, "rentalRestrictions", [
+        { value: "none", label: "No restrictions I know of" },
+        { value: "size", label: "Size limit — no large dogs" },
+        { value: "breed", label: "Specific breed restrictions" },
+        { value: "unsure", label: "Not sure yet" },
+      ], answers.rentalRestrictions);
+
+      container.querySelectorAll('input[name="renter"]').forEach((input) => {
+        input.addEventListener("change", () => {
+          wrap.hidden = readRadio(container, "renter") !== "yes";
+        });
+      });
     },
     read(container, answers) {
       answers.renter = readRadio(container, "renter");
+      answers.rentalRestrictions = answers.renter === "yes" ? readRadio(container, "rentalRestrictions") : undefined;
     },
     isValid: (answers) => !!answers.renter,
   },

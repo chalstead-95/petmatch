@@ -122,7 +122,11 @@
   const cardTemplate = document.getElementById("template-result-card");
 
   function renderResults() {
-    resultsSubtitle.textContent = `Based on your answers, here are your top ${state.matches.length} matches, ranked by fit.`;
+    let subtitle = `Based on your answers, here are your top ${state.matches.length} matches, ranked by fit.`;
+    if (state.answers.allergies === "significant") {
+      subtitle += " Non-hypoallergenic cats and dogs are excluded entirely given your allergy answer.";
+    }
+    resultsSubtitle.textContent = subtitle;
     resultsList.innerHTML = "";
 
     state.matches.forEach((match, i) => {
@@ -131,6 +135,7 @@
       const summaryBtn = node.querySelector(".result-summary");
       const pet = match.pet;
 
+      node.querySelector(".result-icon").innerHTML = speciesIconMarkup(pet.species);
       node.querySelector(".result-rank").textContent = `#${i + 1}`;
       node.querySelector(".result-name").textContent = pet.name;
       node.querySelector(".result-meta").textContent = `${capitalize(pet.species)} · ${capitalize(pet.size)}`;
