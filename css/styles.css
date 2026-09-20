@@ -305,7 +305,7 @@ output {
 .result-summary {
   width: 100%;
   display: grid;
-  grid-template-columns: auto 1fr auto auto auto;
+  grid-template-columns: auto auto 1fr auto auto auto;
   align-items: center;
   gap: 12px;
   padding: 16px 18px;
@@ -320,6 +320,21 @@ output {
 .result-summary:focus-visible {
   outline: 3px solid var(--color-primary-dark);
   outline-offset: -3px;
+}
+.result-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: var(--color-accent-bg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  color: var(--color-primary);
+}
+.result-icon svg {
+  width: 24px;
+  height: 24px;
 }
 .result-rank {
   color: var(--color-text-muted);
@@ -504,11 +519,12 @@ output {
 
 @media (max-width: 480px) {
   .result-summary {
-    grid-template-columns: auto 1fr auto;
+    grid-template-columns: auto auto 1fr auto;
     grid-template-areas:
-      "rank name chevron"
-      "meta meta score";
+      "icon rank name chevron"
+      "icon meta meta score";
   }
+  .result-icon { grid-area: icon; }
   .result-rank { grid-area: rank; }
   .result-name { grid-area: name; }
   .chevron { grid-area: chevron; }
