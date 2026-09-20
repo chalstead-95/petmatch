@@ -36,6 +36,41 @@ offers a free API covering similar ground (adoptable animals + shelter/rescue
 data, radius search) with a simpler API-key auth model than Petfinder's OAuth
 — that would be the natural next backend to build against.
 
+## Changes from Balcony Group feedback
+
+Three reviewer suggestions turned into actual changes rather than just notes
+for later:
+
+- **Allergies are now a hard filter, not just a penalty.** A reviewer who is
+  allergic to cats reported that cats still showed up as top matches despite
+  answering the allergy question. `getMatches` in `js/matching.js` now
+  excludes non-hypoallergenic cats and dogs entirely when a user selects
+  "significant" allergies (`isAllergyEligible`), instead of just scoring them
+  down. Rabbits, rodents, and birds are left out of this filter on purpose —
+  "significant pet allergies" is almost always about cat/dog dander, and this
+  dataset doesn't model allergen risk for the other species, so filtering
+  them too would hide 3 of 5 species for no real reason. The results screen
+  now says outright when this filter is active.
+- **The rental question now actually does something.** The quiz already
+  asked "Do you rent?" but the answer went nowhere. It now has a follow-up —
+  size limits or breed restrictions — that measurably lowers the score of
+  large dogs or commonly breed-restricted dogs (German Shepherd, Husky,
+  Great Dane, etc. — a name-matched heuristic list, documented in
+  `js/matching.js`, since the dataset has no breed-restriction field).
+- **Match cards now show a species icon**, not just text, per feedback that
+  a purely text-based result feels flatter than the decision it's helping
+  with. These are generic per-species line icons (`js/icons.js`), not photos
+  of the specific breed — there's no license-clean photo source for 50
+  specific dataset entries without a real image backend, so a clear,
+  honest stand-in icon is what a static site can actually deliver.
+
+Feedback that wasn't turned into a code change, and why: one reviewer asked
+for a defined, testable notion of "the match was right" before trusting the
+weighted scoring — a fair point, but validating weights against real
+outcomes needs real usage data this project doesn't have yet, so it stays a
+documented next step (see "Known limitations" below) rather than a change
+made up on the spot.
+
 ## How it's built (maps to the spec's sections)
 
 | Spec section | What's here |
@@ -54,9 +89,11 @@ weights should be. Here's what this build uses, out of 100 points total:
 - Energy/exercise fit — 15
 - Alone-time tolerance — 12
 - Owner experience level — 12
-- Allergies — 12 (a "significant allergies + not hypoallergenic" hard
-  mismatch zeroes out *this factor only*, not the whole score, per spec)
-- Living space / apartment fit — 10
+- Allergies — 12 ("significant" allergies now hard-excludes non-hypoallergenic
+  cats/dogs from the results entirely, see "Changes from Balcony Group
+  feedback" above; "mild" sensitivity still just scores the factor down)
+- Living space / apartment fit — 10 (also now factors in rental breed/size
+  restrictions when the user rents — see above)
 - Noise tolerance — 10
 - Grooming tolerance — 8
 - Budget — 8
@@ -74,7 +111,13 @@ testing — they're the kind of thing worth a second opinion.
 - **Shelter search is link-out, not embedded**, because Petfinder's API is
   gone (see above). Embedding real listings again would mean building
   against RescueGroups.org or a similar API instead.
-- **Weights are a first pass**, not validated against real users yet.
+- **Weights are a first pass**, not validated against real users yet — a
+  Balcony Group reviewer suggested defining what "a correct match" means
+  before trying to validate the scoring against real outcomes; that's a
+  reasonable next step, not something to guess at now.
+- **Breed-restriction detection is a name-matched heuristic**, not a real
+  database of rental/insurance restricted breeds, and those lists vary by
+  landlord anyway.
 - **Not yet deployed** in every sense — works locally and is straightforward
   to host as a fully static site (GitHub Pages, Vercel, Netlify, Replit, or
   literally anywhere that serves static files, since there's no backend
@@ -85,10 +128,11 @@ testing — they're the kind of thing worth a second opinion.
 ```
 index.html            Single-page app shell (landing / quiz / results screens)
 css/styles.css        All styling, responsive + light/dark aware
-js/matching.js         Weighted scoring engine
+js/matching.js         Weighted scoring engine (+ allergy hard filter, rental-restriction scoring)
 js/quiz-questions.js   Quiz question definitions
 js/app.js              Screen/quiz navigation, results rendering, adoptable-link UI
 js/shelterSearch.js    Builds the Petfinder/Adopt-a-Pet outbound search links
+js/icons.js             Per-species line icons shown on match cards
 data/pets.json          50-entry breed/type dataset
 server.js                Local static file server (dev convenience only)
 scripts/generate_pets.py  Script that generated data/pets.json
